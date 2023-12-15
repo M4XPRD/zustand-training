@@ -1,10 +1,11 @@
 import { nanoid } from 'nanoid';
 import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import {
   devtools, persist, createJSONStorage,
 } from 'zustand/middleware';
 
-export const useTodos = create(
+export const useTodos = createWithEqualityFn(
   devtools(
     persist(
       (set, get) => ({
@@ -29,6 +30,23 @@ export const useTodos = create(
           todos: get().todos
             .map((todo) => (todoId === todo.id ? { ...todo, completed: !todo.completed } : todo)),
         }),
+        fetchTodos: async () => {
+          set({ loading: true });
+
+          try {
+            const res = await fetch('https://jsonplaceholder.typicode.com/todos?_limit=10');
+
+            if (!res.ok) {
+              throw new Error('Failed to fetch todos, try again.');
+            }
+
+            set({ todos: await res.json(), error: null });
+          } catch (error) {
+            set({ error: error.message });
+          } finally {
+            set({ loading: false });
+          }
+        },
       }),
       {
         name: 'todos-storage',
